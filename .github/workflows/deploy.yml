@@ -1,0 +1,24 @@
+name: Deploy to AWS ECS
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Log in to AWS ECR
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build and Push Docker Image
+        run: |
+          docker build -t 248189918278.dkr.ecr.us-east-1.amazonaws.com/application-rest-api:latest .
+          docker push 248189918278.dkr.ecr.us-east-1.amazonaws.com/application-rest-api:latest
+
+      - name: Update ECS Service
+        run: |
+          aws ecs update-service --cluster my-cluster --service my-service --force-new-deployment
