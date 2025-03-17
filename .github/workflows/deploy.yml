@@ -30,7 +30,7 @@ jobs:
 
     - name: Tag Docker image
       run: |
-        docker tag application-rest-api:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_DEFAULT_REGION }}.amazonaws.com application-rest-api:latest
+        docker tag application-rest-api:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_DEFAULT_REGION }}.amazonaws.com/application-rest-api:latest
 
     - name: Push Docker image to ECR
       run: |
@@ -43,3 +43,4 @@ jobs:
           --cluster my-cluster \
           --service my-service \
           --task-definition $ecs_task_definition
+
