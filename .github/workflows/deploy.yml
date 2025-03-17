@@ -36,11 +36,14 @@ jobs:
       run: |
         docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_DEFAULT_REGION }}.amazonaws.com/application-rest-api:latest
 
-    - name: Update ECS service
+    - name: Deploy updated task definition to ECS
       run: |
-        ecs_task_definition=$(aws ecs describe-task-definition --task-definition my-task | jq -r '.taskDefinition.taskDefinitionArn')
+        TASK_DEFINITION_ARN=$(aws ecs describe-task-definition --task-definition my-task | jq -r '.taskDefinition.taskDefinitionArn')
         aws ecs update-service \
           --cluster my-cluster \
           --service my-service \
-          --task-definition $ecs_task_definition
+          --task-definition $TASK_DEFINITION_ARN
 
+    - name: Force ECS to pull the latest image
+      run: |
+        aws ecs update-service --cluster my-cluster --service my-service --force-new-deployment
