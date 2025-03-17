@@ -1,4 +1,5 @@
 name: Deploy to AWS ECS
+
 on:
   push:
     branches:
@@ -7,18 +8,38 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v2
+    - name: Checkout code
+      uses: actions/checkout@v2
 
-      - name: Log in to AWS ECR
-        uses: aws-actions/amazon-ecr-login@v1
+    - name: Set up AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_DEFAULT_REGION }}  # Make sure this is defined in GitHub secrets
 
-      - name: Build and Push Docker Image
-        run: |
-          docker build -t 248189918278.dkr.ecr.us-east-1.amazonaws.com/application-rest-api:latest .
-          docker push 248189918278.dkr.ecr.us-east-1.amazonaws.com/application-rest-api:latest
+    - name: Build Docker image
+      run: |
+        docker build -t application-rest-api .
 
-      - name: Update ECS Service
-        run: |
-          aws ecs update-service --cluster my-cluster --service my-service --force-new-deployment
+    - name: Log in to Amazon ECR
+      run: |
+        aws ecr get-login-password --region ${{ secrets.AWS_DEFAULT_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_DEFAULT_REGION }}.amazonaws.com
+
+    - name: Tag Docker image
+      run: |
+        docker tag application-rest-api:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_DEFAULT_REGION }}.amazonaws.com application-rest-api:latest
+
+    - name: Push Docker image to ECR
+      run: |
+        docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_DEFAULT_REGION }}.amazonaws.com application-rest-api:latest
+
+    - name: Update ECS service
+      run: |
+        ecs_task_definition=$(aws ecs describe-task-definition --task-definition my-task | jq -r '.taskDefinition.taskDefinitionArn')
+        aws ecs update-service \
+          --cluster my-cluster \
+          --service my-service \
+          --task-definition $ecs_task_definition
